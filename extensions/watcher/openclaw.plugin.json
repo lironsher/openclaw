@@ -1,0 +1,9 @@
+{
+  "id": "watcher",
+  "channels": ["watcher"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

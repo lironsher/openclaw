@@ -89,7 +89,7 @@ ensure_control_ui_allowed_origins() {
   local current_allowed_origins
   allowed_origin_json="$(printf '["http://127.0.0.1:%s"]' "$OPENCLAW_GATEWAY_PORT")"
   current_allowed_origins="$(
-    docker compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
+    docker-compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
       config get gateway.controlUi.allowedOrigins 2>/dev/null || true
   )"
   current_allowed_origins="${current_allowed_origins//$'\r'/}"
@@ -99,15 +99,15 @@ ensure_control_ui_allowed_origins() {
     return 0
   fi
 
-  docker compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
+  docker-compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
     config set gateway.controlUi.allowedOrigins "$allowed_origin_json" --strict-json >/dev/null
   echo "Set gateway.controlUi.allowedOrigins to $allowed_origin_json for non-loopback bind."
 }
 
 sync_gateway_mode_and_bind() {
-  docker compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
+  docker-compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
     config set gateway.mode local >/dev/null
-  docker compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
+  docker-compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
     config set gateway.bind "$OPENCLAW_GATEWAY_BIND" >/dev/null
   echo "Pinned gateway.mode=local and gateway.bind=$OPENCLAW_GATEWAY_BIND for Docker setup."
 }
@@ -151,8 +151,8 @@ validate_mount_spec() {
 }
 
 require_cmd docker
-if ! docker compose version >/dev/null 2>&1; then
-  echo "Docker Compose not available (try: docker compose version)" >&2
+if ! docker-compose version >/dev/null 2>&1; then
+  echo "docker-compose not available (try: docker-compose version)" >&2
   exit 1
 fi
 
@@ -412,7 +412,7 @@ echo "==> Fixing data-directory permissions"
 # ownership of all user project files on Linux hosts.
 # After fixing the config dir, only the OpenClaw metadata subdirectory
 # (.openclaw/) inside the workspace gets chowned, not the user's project files.
-docker compose "${COMPOSE_ARGS[@]}" run --rm --user root --entrypoint sh openclaw-cli -c \
+docker-compose "${COMPOSE_ARGS[@]}" run --rm --user root --entrypoint sh openclaw-cli -c \
   'find /home/node/.openclaw -xdev -exec chown node:node {} +; \
    [ -d /home/node/.openclaw/workspace/.openclaw ] && chown -R node:node /home/node/.openclaw/workspace/.openclaw || true'
 
@@ -425,7 +425,7 @@ echo "Gateway token: $OPENCLAW_GATEWAY_TOKEN"
 echo "Tailscale exposure: Off (use host-level tailnet/Tailscale setup separately)."
 echo "Install Gateway daemon: No (managed by Docker Compose)"
 echo ""
-docker compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli onboard --mode local --no-install-daemon
+docker-compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli onboard --mode local --no-install-daemon
 
 echo ""
 echo "==> Docker gateway defaults"
@@ -447,7 +447,7 @@ echo "Docs: https://docs.openclaw.ai/channels"
 
 echo ""
 echo "==> Starting gateway"
-docker compose "${COMPOSE_ARGS[@]}" up -d openclaw-gateway
+docker-compose "${COMPOSE_ARGS[@]}" up -d openclaw-gateway
 
 # --- Sandbox setup (opt-in via OPENCLAW_SANDBOX=1) ---
 if [[ -n "$SANDBOX_ENABLED" ]]; then
@@ -470,7 +470,7 @@ if [[ -n "$SANDBOX_ENABLED" ]]; then
   # Defense-in-depth: verify Docker CLI in the running image before enabling
   # sandbox. This avoids claiming sandbox is enabled when the image cannot
   # launch sandbox containers.
-  if ! docker compose "${COMPOSE_ARGS[@]}" run --rm --entrypoint docker openclaw-gateway --version >/dev/null 2>&1; then
+  if ! docker-compose "${COMPOSE_ARGS[@]}" run --rm --entrypoint docker openclaw-gateway --version >/dev/null 2>&1; then
     echo "WARNING: Docker CLI not found inside the container image." >&2
     echo "  Sandbox requires Docker CLI. Rebuild with --build-arg OPENCLAW_INSTALL_DOCKER_CLI=1" >&2
     echo "  or use a local build (OPENCLAW_IMAGE=openclaw:local). Skipping sandbox setup." >&2
@@ -509,17 +509,17 @@ fi
 if [[ -n "$SANDBOX_ENABLED" ]]; then
   # Enable sandbox in OpenClaw config.
   sandbox_config_ok=true
-  if ! docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps openclaw-cli \
+  if ! docker-compose "${COMPOSE_ARGS[@]}" run --rm --no-deps openclaw-cli \
     config set agents.defaults.sandbox.mode "non-main" >/dev/null; then
     echo "WARNING: Failed to set agents.defaults.sandbox.mode" >&2
     sandbox_config_ok=false
   fi
-  if ! docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps openclaw-cli \
+  if ! docker-compose "${COMPOSE_ARGS[@]}" run --rm --no-deps openclaw-cli \
     config set agents.defaults.sandbox.scope "agent" >/dev/null; then
     echo "WARNING: Failed to set agents.defaults.sandbox.scope" >&2
     sandbox_config_ok=false
   fi
-  if ! docker compose "${COMPOSE_ARGS[@]}" run --rm --no-deps openclaw-cli \
+  if ! docker-compose "${COMPOSE_ARGS[@]}" run --rm --no-deps openclaw-cli \
     config set agents.defaults.sandbox.workspaceAccess "none" >/dev/null; then
     echo "WARNING: Failed to set agents.defaults.sandbox.workspaceAccess" >&2
     sandbox_config_ok=false
@@ -529,11 +529,11 @@ if [[ -n "$SANDBOX_ENABLED" ]]; then
     echo "Sandbox enabled: mode=non-main, scope=agent, workspaceAccess=none"
     echo "Docs: https://docs.openclaw.ai/gateway/sandboxing"
     # Restart gateway with sandbox compose overlay to pick up socket mount + config.
-    docker compose "${COMPOSE_ARGS[@]}" up -d openclaw-gateway
+    docker-compose "${COMPOSE_ARGS[@]}" up -d openclaw-gateway
   else
     echo "WARNING: Sandbox config was partially applied. Check errors above." >&2
     echo "  Skipping gateway restart to avoid exposing Docker socket without a full sandbox policy." >&2
-    if ! docker compose "${BASE_COMPOSE_ARGS[@]}" run --rm --no-deps openclaw-cli \
+    if ! docker-compose "${BASE_COMPOSE_ARGS[@]}" run --rm --no-deps openclaw-cli \
       config set agents.defaults.sandbox.mode "off" >/dev/null; then
       echo "WARNING: Failed to roll back agents.defaults.sandbox.mode to off" >&2
     else
@@ -543,13 +543,13 @@ if [[ -n "$SANDBOX_ENABLED" ]]; then
       rm -f "$SANDBOX_COMPOSE_FILE"
     fi
     # Ensure gateway service definition is reset without sandbox overlay mount.
-    docker compose "${BASE_COMPOSE_ARGS[@]}" up -d --force-recreate openclaw-gateway
+    docker-compose "${BASE_COMPOSE_ARGS[@]}" up -d --force-recreate openclaw-gateway
   fi
 else
   # Keep reruns deterministic: if sandbox is not active for this run, reset
   # persisted sandbox mode so future execs do not require docker.sock by stale
   # config alone.
-  if ! docker compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
+  if ! docker-compose "${COMPOSE_ARGS[@]}" run --rm openclaw-cli \
     config set agents.defaults.sandbox.mode "off" >/dev/null; then
     echo "WARNING: Failed to reset agents.defaults.sandbox.mode to off" >&2
   fi

@@ -1,0 +1,26 @@
+{
+  "name": "@openclaw/watcher",
+  "version": "2026.3.2",
+  "description": "Watcher audio webhook channel plugin for OpenClaw",
+  "type": "module",
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "openclaw": {
+    "extensions": ["./index.ts"],
+    "channel": {
+      "id": "watcher",
+      "label": "Watcher",
+      "selectionLabel": "Watcher (SenseCraft Private AI Service)",
+      "docsPath": "/channels/watcher",
+      "docsLabel": "watcher",
+      "blurb": "Bridge Watcher voice requests to OpenClaw with built-in BigModel ASR + TTS.",
+      "order": 95
+    },
+    "install": {
+      "npmSpec": "@openclaw/watcher",
+      "localPath": "extensions/watcher",
+      "defaultChoice": "npm"
+    }
+  }
+}

@@ -31,6 +31,7 @@ Text is supported everywhere; media and reactions vary by channel.
 - [Telegram](/channels/telegram) — Bot API via grammY; supports groups.
 - [Tlon](/channels/tlon) — Urbit-based messenger (plugin, installed separately).
 - [Twitch](/channels/twitch) — Twitch chat via IRC connection (plugin, installed separately).
+- [Watcher](/channels/watcher) — Seeed Watcher private AI service webhook with built-in ASR + TTS bridge (plugin, installed separately).
 - [WebChat](/web/webchat) — Gateway WebChat UI over WebSocket.
 - [WhatsApp](/channels/whatsapp) — Most popular; uses Baileys and requires QR pairing.
 - [Zalo](/channels/zalo) — Zalo Bot API; Vietnam's popular messenger (plugin, installed separately).

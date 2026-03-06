@@ -89,6 +89,11 @@
       - any-glob-to-any-file:
           - "extensions/twitch/**"
           - "docs/channels/twitch.md"
+"channel: watcher":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/watcher/**"
+          - "docs/channels/watcher.md"
 "channel: voice-call":
   - changed-files:
       - any-glob-to-any-file:

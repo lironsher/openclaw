@@ -464,6 +464,12 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
 
+  extensions/watcher:
+    dependencies:
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+
   extensions/whatsapp: {}
 
   extensions/zalo:

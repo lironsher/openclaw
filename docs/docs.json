@@ -901,6 +901,7 @@
                   "channels/bluebubbles",
                   "channels/discord",
                   "channels/feishu",
+                  "channels/feishu-miniclaw",
                   "channels/googlechat",
                   "channels/imessage",
                   "channels/irc",
@@ -916,6 +917,7 @@
                   "channels/telegram",
                   "channels/tlon",
                   "channels/twitch",
+                  "channels/watcher",
                   "channels/whatsapp",
                   "channels/zalo",
                   "channels/zalouser"
