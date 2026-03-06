@@ -132,6 +132,7 @@ channels:
 - `ttsResponseFormat`: `pcm` | `wav` | `mp3` (default `wav`).
 - `ttsSpeed`: speech speed, range `0.5` to `2.0`.
 - `ttsPrompt`: optional TTS prompt.
+- `debugPrompts`: log agent prompt + reply previews for Watcher requests (default `true`).
 - `dmPolicy`: `open` | `allowlist` | `disabled`.
 - `allowFrom`: allowed sender ids when `dmPolicy=allowlist`.
 - `senderIdHeader`: header name for sender id (default `x-watcher-device-id`).
@@ -141,6 +142,6 @@ channels:
 
 ## Notes
 
-- The channel currently enforces English/ASCII output for `reply_text`.
+- Reply text is returned as-is from OpenClaw (no language or formatting restrictions).
 - If TTS succeeds with WAV output, you can consume `reply_wav_base64` directly.
 - If TTS fails, text still returns normally and `tts.error` is populated.

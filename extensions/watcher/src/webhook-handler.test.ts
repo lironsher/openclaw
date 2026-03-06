@@ -47,4 +47,6 @@ describe("watcher webhook helpers", () => {
     expect(response.data.tts.enabled).toBe(false);
     expect(response.data.tts.attempted).toBe(false);
   });
+
+  // Text shaping rules are device-side; watcher returns raw text as-is.
 });

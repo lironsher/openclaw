@@ -31,5 +31,6 @@ export const WatcherConfigSchema = z
     ttsResponseFormat: WatcherTtsResponseFormatSchema.optional(),
     ttsSpeed: z.number().min(0.5).max(2.0).optional(),
     ttsPrompt: z.string().optional(),
+    debugPrompts: z.boolean().optional(),
   })
   .passthrough();

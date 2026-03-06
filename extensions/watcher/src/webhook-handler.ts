@@ -6,10 +6,9 @@ const PCM_SAMPLE_RATE = 16_000;
 const PCM_BYTES_PER_SAMPLE = 2;
 const BODY_PREVIEW_BYTES = 24;
 const HEADER_VALUE_MAX_CHARS = 220;
-const WATCHER_ENGLISH_ONLY_INSTRUCTION =
-  "Reply in English only. Use plain ASCII characters and avoid Chinese characters.";
 const WATCHER_ASCII_FALLBACK_REPLY =
-  "Sorry, I can only return English text on this channel.";
+  "Sorry, I could not return a readable reply on this channel.";
+const WATCHER_PROMPT_LOG_MAX_CHARS = 800;
 
 let watcherRequestSeq = 0;
 
@@ -36,6 +35,10 @@ function trimForLog(value: string, maxChars = HEADER_VALUE_MAX_CHARS): string {
     return collapsed;
   }
   return `${collapsed.slice(0, maxChars)}...`;
+}
+
+function trimForPromptLog(value: string): string {
+  return trimForLog(value, WATCHER_PROMPT_LOG_MAX_CHARS);
 }
 
 function redactSecret(value: string): string {
@@ -580,12 +583,12 @@ function asReadableErrorMessage(error: unknown): string {
 }
 
 function buildWatcherAgentPrompt(asrText: string): string {
-  return `${WATCHER_ENGLISH_ONLY_INSTRUCTION}\n\nUser speech transcript:\n${asrText}`;
+  return asrText;
 }
 
-function enforceAsciiReplyText(text: string): string {
-  const asciiOnly = text.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "").trim();
-  return asciiOnly.length > 0 ? asciiOnly : WATCHER_ASCII_FALLBACK_REPLY;
+function fallbackIfEmpty(text: string): string {
+  const trimmed = text.trim();
+  return trimmed.length > 0 ? trimmed : WATCHER_ASCII_FALLBACK_REPLY;
 }
 
 export function createWatcherWebhookHandler(deps: WatcherWebhookHandlerDeps) {
@@ -661,6 +664,10 @@ export function createWatcherWebhookHandler(deps: WatcherWebhookHandlerDeps) {
       }
       const audioWav = ensureWavAudioBuffer(rawAudio);
       const timeoutSignal = AbortSignal.timeout(account.requestTimeoutMs);
+      if (account.debugPrompts) {
+        log?.info?.(`watcher: request id=${requestId} asr=start`);
+      }
+      const asrStartedAt = Date.now();
       const asrText = (
         await requestBigmodelAsr({
           account,
@@ -668,6 +675,10 @@ export function createWatcherWebhookHandler(deps: WatcherWebhookHandlerDeps) {
           signal: timeoutSignal,
         })
       ).trim();
+      const asrElapsedMs = Date.now() - asrStartedAt;
+      if (account.debugPrompts) {
+        log?.info?.(`watcher: request id=${requestId} asr=done elapsedMs=${asrElapsedMs}`);
+      }
 
       if (!asrText) {
         finishLog(200, "asr returned empty transcript");
@@ -686,19 +697,35 @@ export function createWatcherWebhookHandler(deps: WatcherWebhookHandlerDeps) {
 
       log?.info?.(`watcher: request id=${requestId} ASR from ${from}: ${asrText.slice(0, 120)}`);
 
+      const promptBody = buildWatcherAgentPrompt(asrText);
+      if (account.debugPrompts) {
+        log?.info?.(
+          `watcher: request id=${requestId} agentPrompt="${trimForPromptLog(promptBody)}"`,
+        );
+      }
+
+      if (account.debugPrompts) {
+        log?.info?.(`watcher: request id=${requestId} agent=start`);
+      }
+      const agentStartedAt = Date.now();
       const replyText = await deliver({
-        body: buildWatcherAgentPrompt(asrText),
+        body: promptBody,
         from,
         senderName,
         sessionKey: `watcher-${from}`,
         accountId: account.accountId,
       });
+      const agentElapsedMs = Date.now() - agentStartedAt;
+      if (account.debugPrompts) {
+        log?.info?.(`watcher: request id=${requestId} agent=done elapsedMs=${agentElapsedMs}`);
+      }
+      if (account.debugPrompts) {
+        const replyPreview = replyText ? trimForPromptLog(replyText) : "<empty>";
+        log?.info?.(`watcher: request id=${requestId} agentReply="${replyPreview}"`);
+      }
 
       const rawScreenText = (replyText?.trim() ?? asrText).trim();
-      const screenText = enforceAsciiReplyText(rawScreenText);
-      if (screenText !== rawScreenText) {
-        log?.warn?.(`watcher: request id=${requestId} non-ASCII reply text was sanitized`);
-      }
+      const screenText = fallbackIfEmpty(rawScreenText);
       const ttsMeta: WatcherTtsMeta = {
         enabled: account.ttsEnabled,
         attempted: false,
@@ -707,14 +734,23 @@ export function createWatcherWebhookHandler(deps: WatcherWebhookHandlerDeps) {
       let replyWavBytes: number | undefined;
       let replyWavMime: string | undefined;
 
+      let ttsElapsedMs = 0;
       if (account.ttsEnabled && screenText.length > 0) {
         try {
+          if (account.debugPrompts) {
+            log?.info?.(`watcher: request id=${requestId} tts=start`);
+          }
+          const ttsStartedAt = Date.now();
           const ttsResponseFormat = account.ttsResponseFormat.trim().toLowerCase();
           let ttsAudio = await requestBigmodelTts({
             account,
             text: screenText,
             signal: timeoutSignal,
           });
+          ttsElapsedMs = Date.now() - ttsStartedAt;
+          if (account.debugPrompts) {
+            log?.info?.(`watcher: request id=${requestId} tts=done elapsedMs=${ttsElapsedMs}`);
+          }
           if (ttsResponseFormat === "wav") {
             ttsAudio = ensureWavAudioBuffer(ttsAudio);
           }
@@ -739,6 +775,12 @@ export function createWatcherWebhookHandler(deps: WatcherWebhookHandlerDeps) {
           ttsMeta.error = errorMessage;
           log?.warn?.(`watcher: TTS failed: ${errorMessage}`);
         }
+      }
+      if (account.debugPrompts) {
+        const totalElapsedMs = Date.now() - startedAt;
+        log?.info?.(
+          `watcher: request id=${requestId} timing asr=${asrElapsedMs}ms agent=${agentElapsedMs}ms tts=${ttsElapsedMs}ms total=${totalElapsedMs}ms`,
+        );
       }
 
       sendWatcherResponseWithLog({

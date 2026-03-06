@@ -105,5 +105,6 @@ export function resolveWatcherAccount(cfg: OpenClawConfig): ResolvedWatcherAccou
     ttsResponseFormat: readString(channelConfig.ttsResponseFormat) ?? DEFAULT_TTS_RESPONSE_FORMAT,
     ttsSpeed: readNumber(channelConfig.ttsSpeed, DEFAULT_TTS_SPEED),
     ttsPrompt: readString(channelConfig.ttsPrompt),
+    debugPrompts: readBoolean(channelConfig.debugPrompts, true),
   };
 }

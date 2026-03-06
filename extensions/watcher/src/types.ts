@@ -23,6 +23,7 @@ export type ResolvedWatcherAccount = {
   ttsResponseFormat: string;
   ttsSpeed: number;
   ttsPrompt?: string;
+  debugPrompts: boolean;
 };
 
 export type WatcherInboundMessage = {
