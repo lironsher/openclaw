@@ -28,8 +28,9 @@ Pipeline:
 2. Normalize to WAV when needed.
 3. Call BigModel ASR to get transcript.
 4. Dispatch transcript to OpenClaw agent.
-5. (Optional) Call BigModel TTS.
-6. Return JSON with text and optional WAV base64.
+5. Ask OpenClaw to reply in a single first-person Chinese sentence.
+6. (Optional) Call BigModel TTS.
+7. Return JSON with text and optional WAV base64.
 
 ## Response Contract
 
@@ -142,6 +143,6 @@ channels:
 
 ## Notes
 
-- Reply text is returned as-is from OpenClaw (no language or formatting restrictions).
+- Reply text is produced from the OpenClaw agent with a watcher-specific prompt that asks for one short first-person Chinese sentence.
 - If TTS succeeds with WAV output, you can consume `reply_wav_base64` directly.
 - If TTS fails, text still returns normally and `tts.error` is populated.

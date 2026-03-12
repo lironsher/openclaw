@@ -6,8 +6,7 @@ const PCM_SAMPLE_RATE = 16_000;
 const PCM_BYTES_PER_SAMPLE = 2;
 const BODY_PREVIEW_BYTES = 24;
 const HEADER_VALUE_MAX_CHARS = 220;
-const WATCHER_ASCII_FALLBACK_REPLY =
-  "Sorry, I could not return a readable reply on this channel.";
+const WATCHER_ASCII_FALLBACK_REPLY = "Sorry, I could not return a readable reply on this channel.";
 const WATCHER_PROMPT_LOG_MAX_CHARS = 800;
 
 let watcherRequestSeq = 0;
@@ -152,11 +151,7 @@ export function ensureWavAudioBuffer(audioBuffer: Buffer): Buffer {
   return Buffer.concat([createPcm16MonoWavHeader(audioBuffer.length), audioBuffer]);
 }
 
-function responseJson(
-  res: ServerResponse,
-  statusCode: number,
-  body: unknown,
-): void {
+function responseJson(res: ServerResponse, statusCode: number, body: unknown): void {
   res.writeHead(statusCode, {
     "Content-Type": "application/json",
     "Cache-Control": "no-store",
@@ -582,8 +577,17 @@ function asReadableErrorMessage(error: unknown): string {
   return String(error);
 }
 
-function buildWatcherAgentPrompt(asrText: string): string {
-  return asrText;
+export function buildWatcherAgentPrompt(asrText: string): string {
+  const transcript = asrText.trim();
+  return [
+    "请理解下面的语音内容，然后直接回复最终结果。",
+    "要求：",
+    "1. 只用一句自然、简短的中文。",
+    "2. 保持第一人称语气。",
+    "3. 不要解释过程，不要分点，不要加引号。",
+    "",
+    `语音内容：${transcript}`,
+  ].join("\n");
 }
 
 function fallbackIfEmpty(text: string): string {
