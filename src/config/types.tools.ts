@@ -536,7 +536,10 @@ export type ToolsConfig = {
     crossContext?: {
       /** Allow sends to other channels within the same provider (default: true). */
       allowWithinProvider?: boolean;
-      /** Allow sends across different providers (default: false). */
+      /**
+       * Allow sends across different providers (default: true).
+       * Warning: this broadens routing scope and can send messages into the wrong service.
+       */
       allowAcrossProviders?: boolean;
       /** Cross-context marker configuration. */
       marker?: {

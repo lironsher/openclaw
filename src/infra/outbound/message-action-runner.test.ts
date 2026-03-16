@@ -446,10 +446,35 @@ describe("runMessageAction context isolation", () => {
     expect(result.channel).toBe("slack");
   });
 
-  it("blocks cross-provider sends by default", async () => {
+  it("allows cross-provider sends by default", async () => {
     await expect(
       runDrySend({
         cfg: slackConfig,
+        actionParams: {
+          channel: "telegram",
+          target: "@opsbot",
+          message: "hi",
+        },
+        toolContext: { currentChannelId: "C12345678", currentChannelProvider: "slack" },
+      }),
+    ).resolves.toMatchObject({ kind: "send", channel: "telegram" });
+  });
+
+  it("blocks cross-provider sends when explicitly disabled", async () => {
+    const cfg = {
+      ...slackConfig,
+      tools: {
+        message: {
+          crossContext: {
+            allowAcrossProviders: false,
+          },
+        },
+      },
+    } as OpenClawConfig;
+
+    await expect(
+      runDrySend({
+        cfg,
         actionParams: {
           channel: "telegram",
           target: "@opsbot",

@@ -2916,10 +2916,15 @@ Most commands must be sent as a **standalone** message that starts with `/`, but
 
 ### How do I send a Discord message from Telegram Crosscontext messaging denied
 
-OpenClaw blocks **cross-provider** messaging by default. If a tool call is bound
-to Telegram, it won't send to Discord unless you explicitly allow it.
+OpenClaw allows **cross-provider** messaging by default. If a tool call is bound
+to Telegram, it can send to Discord unless you explicitly disable it.
 
-Enable cross-provider messaging for the agent:
+This is high risk for powerful agents. Cross-provider routing increases blast
+radius, can bridge content between services with different audiences, and makes
+misrouted sends more damaging. Disable it unless the agent genuinely needs to
+operate across multiple providers.
+
+Disable cross-provider messaging for the agent:
 
 ```json5
 {
@@ -2928,7 +2933,7 @@ Enable cross-provider messaging for the agent:
       tools: {
         message: {
           crossContext: {
-            allowAcrossProviders: true,
+            allowAcrossProviders: false,
             marker: { enabled: true, prefix: "[from {channel}] " },
           },
         },
@@ -2939,7 +2944,8 @@ Enable cross-provider messaging for the agent:
 ```
 
 Restart the gateway after editing config. If you only want this for a single
-agent, set it under `agents.list[].tools.message` instead.
+agent, set it under `agents.list[].tools.message` instead. Only leave
+cross-provider routing enabled for tightly scoped, trusted agents.
 
 ### Why does it feel like the bot ignores rapidfire messages
 
