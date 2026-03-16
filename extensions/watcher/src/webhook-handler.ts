@@ -578,16 +578,7 @@ function asReadableErrorMessage(error: unknown): string {
 }
 
 export function buildWatcherAgentPrompt(asrText: string): string {
-  const transcript = asrText.trim();
-  return [
-    "请理解下面的语音内容，然后直接回复最终结果。",
-    "要求：",
-    "1. 只用一句自然、简短的中文。",
-    "2. 保持第一人称语气。",
-    "3. 不要解释过程，不要分点，不要加引号。",
-    "",
-    `语音内容：${transcript}`,
-  ].join("\n");
+  return asrText.trim();
 }
 
 function fallbackIfEmpty(text: string): string {

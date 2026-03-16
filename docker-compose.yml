@@ -24,6 +24,7 @@ services:
     # group_add:
     #   - "${DOCKER_GID:-999}"
     ports:
+      - "18080:80"
       - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
       - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
     init: true

@@ -49,17 +49,9 @@ describe("watcher webhook helpers", () => {
     expect(response.data.tts.attempted).toBe(false);
   });
 
-  it("wraps ASR text with watcher reply constraints", () => {
-    expect(buildWatcherAgentPrompt("What is the weather today?")).toBe(
-      [
-        "请理解下面的语音内容，然后直接回复最终结果。",
-        "要求：",
-        "1. 只用一句自然、简短的中文。",
-        "2. 保持第一人称语气。",
-        "3. 不要解释过程，不要分点，不要加引号。",
-        "",
-        "语音内容：What is the weather today?",
-      ].join("\n"),
+  it("passes ASR text through without watcher prompt injection", () => {
+    expect(buildWatcherAgentPrompt("  What is the weather today?  ")).toBe(
+      "What is the weather today?",
     );
   });
 });
