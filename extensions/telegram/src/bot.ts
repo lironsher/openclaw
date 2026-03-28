@@ -185,6 +185,23 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       const shutdownSignal = opts.fetchAbortSignal;
       const onShutdown = () => abortWith(shutdownSignal as AbortSignal);
       const method = extractTelegramApiMethod(input);
+      if (shouldLogVerbose() && method && method !== "getupdates") {
+        let bodyPreview = "";
+        try {
+          if (init?.body != null) {
+            const bodyStr =
+              typeof init.body === "string"
+                ? init.body
+                : init.body instanceof FormData
+                  ? `[FormData keys=${[...init.body.keys()].join(",")}]`
+                  : JSON.stringify(init.body);
+            bodyPreview = bodyStr.length > 500 ? `${bodyStr.slice(0, 500)}...` : bodyStr;
+          }
+        } catch {
+          bodyPreview = "[unreadable]";
+        }
+        logVerbose(`telegram api: ${method}${bodyPreview ? ` body=${bodyPreview}` : ""}`);
+      }
       const requestTimeoutMs =
         method === "getupdates" ? TELEGRAM_GET_UPDATES_REQUEST_TIMEOUT_MS : undefined;
       let requestTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -302,6 +319,9 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     const updateId = resolveTelegramUpdateId(ctx);
     const skipCutoff = highestPersistedUpdateId ?? initialUpdateId;
     if (typeof updateId === "number" && skipCutoff !== null && updateId <= skipCutoff) {
+      if (shouldLogVerbose()) {
+        logVerbose(`telegram dedupe: skipped update ${updateId} (cutoff=${skipCutoff})`);
+      }
       return true;
     }
     const key = buildTelegramUpdateKey(ctx);
@@ -316,6 +336,9 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     const updateId = resolveTelegramUpdateId(ctx);
     if (typeof updateId === "number") {
       pendingUpdateIds.add(updateId);
+      if (shouldLogVerbose()) {
+        logVerbose(`telegram update ${updateId}: enter (pending=${pendingUpdateIds.size})`);
+      }
     }
     try {
       await next();
@@ -325,12 +348,20 @@ export function createTelegramBot(opts: TelegramBotOptions) {
         if (highestCompletedUpdateId === null || updateId > highestCompletedUpdateId) {
           highestCompletedUpdateId = updateId;
         }
+        if (shouldLogVerbose()) {
+          logVerbose(
+            `telegram update ${updateId}: complete (highest=${highestCompletedUpdateId} pending=${pendingUpdateIds.size})`,
+          );
+        }
         maybePersistSafeWatermark();
       }
     }
   });
 
   bot.use(botRuntime.sequentialize(getTelegramSequentialKey));
+
+  const botLogger = createSubsystemLogger("gateway/channels/telegram/bot");
+  botLogger.info(`telegram bot: account=${account.accountId} initializing`);
 
   const rawUpdateLogger = createSubsystemLogger("gateway/channels/telegram/raw-update");
   const MAX_RAW_UPDATE_CHARS = 8000;
@@ -563,6 +594,8 @@ export function createTelegramBot(opts: TelegramBotOptions) {
     logger,
     telegramDeps,
   });
+
+  botLogger.info(`telegram bot: account=${account.accountId} started`);
 
   const originalStop = bot.stop.bind(bot);
   bot.stop = ((...args: Parameters<typeof originalStop>) => {
