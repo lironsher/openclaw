@@ -515,6 +515,8 @@ export const FIELD_LABELS: Record<string, string> = {
   "acp.runtime.installCommand": "ACP Runtime Install Command",
   models: "Models",
   "models.mode": "Model Catalog Mode",
+  "models.pricing": "Model Pricing",
+  "models.pricing.enabled": "Model Pricing Enabled",
   "models.providers": "Model Providers",
   "models.providers.*.baseUrl": "Model Provider Base URL",
   "models.providers.*.apiKey": "Model Provider API Key", // pragma: allowlist secret
@@ -712,7 +714,7 @@ export const FIELD_LABELS: Record<string, string> = {
   "session.maintenance.pruneAfter": "Session Prune After",
   "session.maintenance.pruneDays": "Session Prune Days (Deprecated)",
   "session.maintenance.maxEntries": "Session Max Entries",
-  "session.maintenance.rotateBytes": "Session Rotate Size",
+  "session.maintenance.rotateBytes": "Deprecated Session Rotate Size",
   "session.maintenance.resetArchiveRetention": "Session Reset Archive Retention",
   "session.maintenance.maxDiskBytes": "Session Max Disk Budget",
   "session.maintenance.highWaterBytes": "Session Disk High-water Target",

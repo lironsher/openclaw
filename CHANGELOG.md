@@ -6,18 +6,28 @@ Docs: https://docs.openclaw.ai
 
 ### Changes
 
+- iOS/Gateway: add an authenticated `node.presence.alive` protocol event and `node.list` last-seen fields so background iOS wakes can mark paired nodes recently alive without treating them as connected. Carries forward #63123. Thanks @ngutman.
 - Gateway/chat: accept non-image attachments through `chat.send` by staging them as agent-readable media paths, while keeping unsupported RPC attachment paths explicit instead of silently dropping files. Fixes #48123. (#67572) Thanks @samzong.
 - Security/networking: add opt-in operator-managed outbound proxy routing (proxy.enabled + proxy.proxyUrl/OPENCLAW_PROXY_URL) with strict http:// forward-proxy validation, loopback-only Gateway bypass, and cleanup of proxy env/dispatcher state on exit. (#70044) Thanks @jesse-merhi and @joshavant.
 
 ### Fixes
 
+- Control UI/WebChat: keep large attachment payloads out of Lit state and optimistic chat messages, using object URL previews plus send-time payload serialization so PDF/image uploads no longer trigger `RangeError: Maximum call stack size exceeded`. Fixes #73360; refs #54378 and #63432. Thanks @hejunhui-73, @Ansub, and @christianhernandez3-afk.
+- Agents/models: keep per-agent primary models strict when `fallbacks` is omitted, so probe-only custom providers are not tried as hidden fallback candidates unless the agent explicitly opts in. Fixes #73332. Thanks @haumanto.
+- Gateway/models: add `models.pricing.enabled` so offline or restricted-network installs can skip startup OpenRouter and LiteLLM pricing-catalog fetches while keeping explicit model costs working. Fixes #53639. Thanks @callebtc, @palewire, and @rjdjohnston.
 - Cron/Telegram: preserve explicit `:topic:` delivery targets over stale session-derived thread IDs when isolated cron announces to Telegram forum topics. Carries forward #59069; refs #49704 and #43808. Thanks @roytong9.
+- Build/runtime: write the runtime-postbuild stamp after `pnpm build` writes the build stamp, so the next CLI invocation does not re-sync runtime artifacts after a successful build. Fixes #73151. Thanks @bittoby.
+- CLI/channels: list configured chat channel accounts from read-only setup metadata even when the standalone CLI has not loaded the runtime channel registry, so `openclaw channels list` shows Telegram accounts before auth providers. Fixes #73319 and #73322. Thanks @mlaihk.
 - CLI/model probes: reject empty or whitespace-only `infer model run --prompt` values before calling local providers or the Gateway, so smoke checks do not spend provider calls on invalid turns. Fixes #73185. Thanks @iot2edge.
 - Gateway/media: route text-only `chat.send` image offloads through media-understanding fields so `agents.defaults.imageModel` can describe WebChat attachments instead of leaving only an opaque `media://inbound` marker. Fixes #72968. Thanks @vorajeeah.
+- Gateway/Windows: route no-listener restart handoffs through the Windows supervisor without leaving restart tokens in flight, so failed task scheduling can be retried and successful handoffs do not coalesce later restart requests. (#69056) Thanks @Thatgfsj.
+- Gateway/model pricing: skip plugin manifest discovery during background pricing refreshes when `plugins.enabled: false`, so disabled-plugin setups do not keep rebuilding plugin metadata from the Gateway hot path. Fixes #73291. Thanks @slideshow-dingo and @fishgills.
+- Gateway/sessions: remove automatic oversized `sessions.json` rotation backups, deprecate `session.maintenance.rotateBytes`, and teach `openclaw doctor --fix` to remove the ignored key so hot session writes no longer copy multi-MB stores. Refs #72338. Thanks @midhunmonachan and @DougButdorf.
 - Channels/Telegram: fail fast when Telegram rejects the startup `getMe` token probe with 401, so invalid or stale BotFather tokens are reported as token auth failures instead of misleading `deleteWebhook` cleanup failures. Fixes #47674. Thanks @samaedan-arch.
 - ACPX: keep generated Codex and Claude ACP wrapper startup paths working when remote or special state filesystems reject chmod, since OpenClaw invokes the wrappers through Node instead of executing them directly. Fixes #73333. Thanks @david-garcia-garcia.
 - CLI/onboarding: infer image input for common custom-provider vision model IDs, ask only for unknown models, and keep `--custom-image-input`/`--custom-text-input` overrides so vision-capable proxies do not get saved as text-only configs. Fixes #51869. Thanks @Antsoldier1974.
 - Models/OpenAI Codex: stop listing or resolving unsupported `openai-codex/gpt-5.4-mini` rows through Codex OAuth, keep stale discovery rows suppressed with a clear API-key-route hint, and leave direct `openai/gpt-5.4-mini` available. Fixes #73242. Thanks @0xCyda.
+- Plugin SDK: restore the root `stringEnum` and `optionalStringEnum` exports on both the published SDK entry and runtime root-alias bridge, so older external plugins can keep building and loading while migrating to focused SDK subpaths. Fixes #68279. Thanks @marzliak.
 - Plugin SDK: restore the root-alias bridge for `registerContextEngine` and expose missing legacy compat helpers `normalizeAccountId` and `resolvePreferredOpenClawTmpDir` so older external plugins such as `openclaw-weixin` can keep loading while migrating to focused SDK subpaths. Fixes #53497. Thanks @alanxchen85.
 - Auth profiles: make `openclaw doctor --fix` migrate legacy flat `auth-profiles.json` files such as `{ "ollama-windows": { "apiKey": "ollama-local" } }` to canonical provider default API-key profiles with a backup, so custom Ollama/OpenAI-compatible providers recover cleanly after upgrading. Fixes #59629; supersedes #59642. Thanks @Xsanders555 and @Linux2010.
 - Memory/Dreaming: retry Dream Diary once with the session default when a configured dreaming model is unavailable, while leaving subagent trust and allowlist errors visible instead of silently masking configuration problems. Refs #67409 and #69209. Thanks @Ghiggins18 and @everySympathy.
@@ -25,6 +35,7 @@ Docs: https://docs.openclaw.ai
 - Channels/Telegram: normalize accidental full `/bot<TOKEN>` Telegram `apiRoot` values at runtime and teach `openclaw doctor --fix` to remove the suffix, so startup control calls no longer 404 when direct Bot API curl commands work. Fixes #55387. Thanks @brendanmatthewjones-cmyk, @techfindubai-ux, and @Sivlerback-Chris.
 - Zalo Personal: persist refreshed `zca-js` session cookies after QR login, session restore, and successful API calls so gateway restarts restore the freshest local session. (#73277) Thanks @darkamenosa.
 - Logging/security: redact sensitive tokens (sk-\* keys, Bearer/Authorization values, etc.) at the subsystem console sink so `createSubsystemLogger().info/warn/error` output that bypasses the patched console-capture handler still applies the same redaction the file transport already does. Fixes #73284; refs #67953 and #64046. Thanks @edwin-rivera-dev.
+- Plugins/runtime deps: reuse enclosing versioned cache roots when bundled plugins resolve from nested staged paths, so plugin-runtime-deps no longer mints `openclaw-unknown-*` directories or loops on `ENOTEMPTY`. Fixes #72956. (#73205) Thanks @SymbolStar.
 
 ## 2026.4.27
 
