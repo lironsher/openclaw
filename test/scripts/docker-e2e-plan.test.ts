@@ -104,10 +104,30 @@ describe("scripts/lib/docker-e2e-plan", () => {
       profile: RELEASE_PATH_PROFILE,
       releaseChunk: "plugins-runtime-install-b",
     });
-    const bundledChannels = planFor({
+    const bundledChannelsCore = planFor({
       includeOpenWebUI: true,
       profile: RELEASE_PATH_PROFILE,
-      releaseChunk: "bundled-channels",
+      releaseChunk: "bundled-channels-core",
+    });
+    const bundledChannelsUpdateA = planFor({
+      includeOpenWebUI: true,
+      profile: RELEASE_PATH_PROFILE,
+      releaseChunk: "bundled-channels-update-a",
+    });
+    const bundledChannelsUpdateDiscord = planFor({
+      includeOpenWebUI: true,
+      profile: RELEASE_PATH_PROFILE,
+      releaseChunk: "bundled-channels-update-discord",
+    });
+    const bundledChannelsUpdateB = planFor({
+      includeOpenWebUI: true,
+      profile: RELEASE_PATH_PROFILE,
+      releaseChunk: "bundled-channels-update-b",
+    });
+    const bundledChannelsContracts = planFor({
+      includeOpenWebUI: true,
+      profile: RELEASE_PATH_PROFILE,
+      releaseChunk: "bundled-channels-contracts",
     });
 
     expect(packageInstallOpenAi.lanes.map((lane) => lane.name)).toEqual(["install-e2e-openai"]);
@@ -142,15 +162,38 @@ describe("scripts/lib/docker-e2e-plan", () => {
       "bundled-plugin-install-uninstall-6",
       "bundled-plugin-install-uninstall-7",
     ]);
-    expect(bundledChannels.lanes.map((lane) => lane.name)).toEqual(
-      expect.arrayContaining([
-        "plugin-update",
-        "bundled-channel-telegram",
-        "bundled-channel-update-acpx",
-      ]),
-    );
-    expect(bundledChannels.lanes.map((lane) => lane.name)).not.toContain("plugins");
-    expect(bundledChannels.lanes.map((lane) => lane.name)).not.toContain("openwebui");
+    expect(bundledChannelsCore.lanes.map((lane) => lane.name)).toEqual([
+      "plugin-update",
+      "bundled-channel-telegram",
+      "bundled-channel-discord",
+      "bundled-channel-slack",
+      "bundled-channel-feishu",
+      "bundled-channel-memory-lancedb",
+    ]);
+    expect(bundledChannelsUpdateA.lanes.map((lane) => lane.name)).toEqual([
+      "bundled-channel-update-telegram",
+      "bundled-channel-update-memory-lancedb",
+    ]);
+    expect(bundledChannelsUpdateDiscord.lanes.map((lane) => lane.name)).toEqual([
+      "bundled-channel-update-discord",
+    ]);
+    expect(bundledChannelsUpdateDiscord.lanes[0]).toMatchObject({
+      noOutputTimeoutMs: 4 * 60 * 1000,
+      timeoutMs: 6 * 60 * 1000,
+    });
+    expect(bundledChannelsUpdateB.lanes.map((lane) => lane.name)).toEqual([
+      "bundled-channel-update-slack",
+      "bundled-channel-update-feishu",
+      "bundled-channel-update-acpx",
+    ]);
+    expect(bundledChannelsContracts.lanes.map((lane) => lane.name)).toEqual([
+      "bundled-channel-root-owned",
+      "bundled-channel-setup-entry",
+      "bundled-channel-load-failure",
+      "bundled-channel-disabled-config",
+    ]);
+    expect(bundledChannelsCore.lanes.map((lane) => lane.name)).not.toContain("plugins");
+    expect(bundledChannelsUpdateA.lanes.map((lane) => lane.name)).not.toContain("openwebui");
   });
 
   it("keeps legacy release chunk names as aggregate aliases", () => {
@@ -163,6 +206,11 @@ describe("scripts/lib/docker-e2e-plan", () => {
       includeOpenWebUI: true,
       profile: RELEASE_PATH_PROFILE,
       releaseChunk: "plugins-runtime",
+    });
+    const bundledChannelsUpdateALegacy = planFor({
+      includeOpenWebUI: true,
+      profile: RELEASE_PATH_PROFILE,
+      releaseChunk: "bundled-channels-update-a-legacy",
     });
     const legacy = planFor({
       includeOpenWebUI: true,
@@ -185,6 +233,11 @@ describe("scripts/lib/docker-e2e-plan", () => {
         "openwebui",
       ]),
     );
+    expect(bundledChannelsUpdateALegacy.lanes.map((lane) => lane.name)).toEqual([
+      "bundled-channel-update-telegram",
+      "bundled-channel-update-discord",
+      "bundled-channel-update-memory-lancedb",
+    ]);
     expect(legacy.lanes.map((lane) => lane.name)).toEqual(
       expect.arrayContaining([
         "plugins",

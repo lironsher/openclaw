@@ -145,11 +145,12 @@ export function createOpenClawTools(
   const imageTool = options?.agentDir?.trim()
     ? memoizeToolFactory({
         label: "createImageTool",
-        cfg: options?.config,
+        refs: [options?.config, options?.sandboxFsBridge],
         scalars: [
-          options?.agentDir,
-          options?.workspaceDir,
+          options.agentDir,
+          workspaceDir,
           options?.sandboxRoot ?? null,
+          options?.fsPolicy?.workspaceOnly === true,
           !!options?.modelHasVision,
         ],
         factory: () =>
@@ -165,8 +166,13 @@ export function createOpenClawTools(
     : null;
   const imageGenerateTool = memoizeToolFactory({
     label: "createImageGenerateTool",
-    cfg: options?.config,
-    scalars: [options?.agentDir, options?.workspaceDir, options?.sandboxRoot ?? null],
+    refs: [options?.config, options?.sandboxFsBridge],
+    scalars: [
+      options?.agentDir,
+      workspaceDir,
+      options?.sandboxRoot ?? null,
+      options?.fsPolicy?.workspaceOnly === true,
+    ],
     factory: () =>
       createImageGenerateTool({
         config: options?.config,
@@ -178,12 +184,17 @@ export function createOpenClawTools(
   });
   const videoGenerateTool = memoizeToolFactory({
     label: "createVideoGenerateTool",
-    cfg: options?.config,
+    refs: [options?.config, options?.sandboxFsBridge],
     scalars: [
       options?.agentDir,
       options?.agentSessionKey,
-      options?.workspaceDir,
+      workspaceDir,
       options?.sandboxRoot ?? null,
+      options?.fsPolicy?.workspaceOnly === true,
+      options?.agentChannel ?? null,
+      options?.agentTo ?? null,
+      options?.agentAccountId ?? null,
+      options?.agentThreadId ?? null,
     ],
     factory: () =>
       createVideoGenerateTool({
@@ -198,12 +209,17 @@ export function createOpenClawTools(
   });
   const musicGenerateTool = memoizeToolFactory({
     label: "createMusicGenerateTool",
-    cfg: options?.config,
+    refs: [options?.config, options?.sandboxFsBridge],
     scalars: [
       options?.agentDir,
       options?.agentSessionKey,
-      options?.workspaceDir,
+      workspaceDir,
       options?.sandboxRoot ?? null,
+      options?.fsPolicy?.workspaceOnly === true,
+      options?.agentChannel ?? null,
+      options?.agentTo ?? null,
+      options?.agentAccountId ?? null,
+      options?.agentThreadId ?? null,
     ],
     factory: () =>
       createMusicGenerateTool({
@@ -219,8 +235,13 @@ export function createOpenClawTools(
   const pdfTool = options?.agentDir?.trim()
     ? memoizeToolFactory({
         label: "createPdfTool",
-        cfg: options?.config,
-        scalars: [options?.agentDir, options?.workspaceDir, options?.sandboxRoot ?? null],
+        refs: [options?.config, options?.sandboxFsBridge],
+        scalars: [
+          options.agentDir,
+          workspaceDir,
+          options?.sandboxRoot ?? null,
+          options?.fsPolicy?.workspaceOnly === true,
+        ],
         factory: () =>
           createPdfTool({
             config: options?.config,
@@ -233,9 +254,8 @@ export function createOpenClawTools(
     : null;
   const webSearchTool = memoizeToolFactory({
     label: "createWebSearchTool",
-    cfg: options?.config,
-    deps: runtimeWebTools,
-    scalars: [options?.agentDir, !!options?.sandboxed],
+    refs: [options?.config, runtimeWebTools],
+    scalars: [!!options?.sandboxed],
     factory: () =>
       createWebSearchTool({
         config: options?.config,
@@ -245,9 +265,8 @@ export function createOpenClawTools(
   });
   const webFetchTool = memoizeToolFactory({
     label: "createWebFetchTool",
-    cfg: options?.config,
-    deps: runtimeWebTools,
-    scalars: [options?.agentDir, !!options?.sandboxed],
+    refs: [options?.config, runtimeWebTools],
+    scalars: [!!options?.sandboxed],
     factory: () =>
       createWebFetchTool({
         config: options?.config,

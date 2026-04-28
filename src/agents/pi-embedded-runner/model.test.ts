@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { discoverModels } from "../pi-model-discovery.js";
+import { discoverAuthStorage, discoverModels } from "../pi-model-discovery.js";
 import { createProviderRuntimeTestMock } from "./model.provider-runtime.test-support.js";
 
 vi.mock("../model-suppression.js", () => ({
   shouldSuppressBuiltInModel: ({ provider, id }: { provider?: string; id?: string }) =>
-    (provider === "openai" ||
+    ((provider === "openai" ||
       provider === "azure-openai-responses" ||
       provider === "openai-codex") &&
-    id?.trim().toLowerCase() === "gpt-5.3-codex-spark",
+      id?.trim().toLowerCase() === "gpt-5.3-codex-spark") ||
+    (provider === "openai-codex" && id?.trim().toLowerCase() === "gpt-5.4-mini"),
   buildSuppressedBuiltInModelError: ({ provider, id }: { provider?: string; id?: string }) => {
+    if (provider === "openai-codex" && id?.trim().toLowerCase() === "gpt-5.4-mini") {
+      return "Unknown model: openai-codex/gpt-5.4-mini. gpt-5.4-mini is not supported by the OpenAI Codex OAuth route. Use openai/gpt-5.4-mini with an OpenAI API key or openai-codex/gpt-5.5 with Codex OAuth.";
+    }
     if (
       (provider !== "openai" &&
         provider !== "azure-openai-responses" &&
@@ -55,6 +59,8 @@ import {
 
 beforeEach(() => {
   resetMockDiscoverModels(discoverModels);
+  vi.mocked(discoverModels).mockClear();
+  vi.mocked(discoverAuthStorage).mockClear();
   mockGetOpenRouterModelCapabilities.mockReset();
   mockGetOpenRouterModelCapabilities.mockReturnValue(undefined);
   mockLoadOpenRouterModelCapabilities.mockReset();
@@ -110,6 +116,27 @@ function resolveModelAsyncForTest(
 }
 
 describe("resolveModel", () => {
+  it("skips PI auth and model discovery during dynamic model resolution", async () => {
+    const result = await resolveModelAsync(
+      "openrouter",
+      "openrouter/auto",
+      "/tmp/agent",
+      undefined,
+      {
+        runtimeHooks: createRuntimeHooks(),
+        skipPiDiscovery: true,
+      },
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.model).toMatchObject({
+      provider: "openrouter",
+      id: "openrouter/auto",
+    });
+    expect(discoverAuthStorage).not.toHaveBeenCalled();
+    expect(discoverModels).not.toHaveBeenCalled();
+  });
+
   it("defaults model input to text when discovery omits input", () => {
     mockDiscoveredModel(discoverModels, {
       provider: "custom",
@@ -1340,13 +1367,15 @@ describe("resolveModel", () => {
     });
   });
 
-  it("builds an openai-codex fallback for gpt-5.4-mini", () => {
+  it("does not build an openai-codex fallback for unsupported gpt-5.4-mini", () => {
     mockOpenAICodexTemplateModel(discoverModels);
 
     const result = resolveModelForTest("openai-codex", "gpt-5.4-mini", "/tmp/agent");
 
-    expect(result.error).toBeUndefined();
-    expect(result.model).toMatchObject(buildOpenAICodexForwardCompatExpectation("gpt-5.4-mini"));
+    expect(result.model).toBeUndefined();
+    expect(result.error).toBe(
+      "Unknown model: openai-codex/gpt-5.4-mini. gpt-5.4-mini is not supported by the OpenAI Codex OAuth route. Use openai/gpt-5.4-mini with an OpenAI API key or openai-codex/gpt-5.5 with Codex OAuth.",
+    );
   });
 
   it("does not build an openai-codex fallback for removed gpt-5.3-codex-spark", () => {
@@ -1740,7 +1769,7 @@ describe("resolveModel", () => {
     });
   });
 
-  it("keeps exact discovered metadata for other openai-codex models", () => {
+  it("rejects stale discovered openai-codex gpt-5.4-mini rows", () => {
     mockDiscoveredModel(discoverModels, {
       provider: "openai-codex",
       modelId: "gpt-5.4-mini",
@@ -1754,15 +1783,10 @@ describe("resolveModel", () => {
 
     const result = resolveModelForTest("openai-codex", "gpt-5.4-mini", "/tmp/agent");
 
-    expect(result.error).toBeUndefined();
-    expect(result.model).toMatchObject({
-      provider: "openai-codex",
-      id: "gpt-5.4-mini",
-      api: "openai-codex-responses",
-      baseUrl: "https://chatgpt.com/backend-api",
-      contextWindow: 64_000,
-      input: ["text"],
-    });
+    expect(result.model).toBeUndefined();
+    expect(result.error).toBe(
+      "Unknown model: openai-codex/gpt-5.4-mini. gpt-5.4-mini is not supported by the OpenAI Codex OAuth route. Use openai/gpt-5.4-mini with an OpenAI API key or openai-codex/gpt-5.5 with Codex OAuth.",
+    );
   });
 
   it("rejects stale direct openai gpt-5.3-codex-spark discovery rows", () => {
